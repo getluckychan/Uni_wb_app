@@ -1,0 +1,92 @@
+{%  extends 'base_generic.html' %}
+{% load crispy_forms_filters %}
+{%  block content %}
+    <form action="{% url 'signup' %}" method="post">
+{#        <div class="container rounded bg-white mt-5 mb-5">#}
+{#            <div class="row">#}
+{#                <div class="col-md-3 border-right">#}
+{#                    <div class="d-flex flex-column align-items-center text-center p-3 py-5">#}
+{#                        <img class="rounded-circle mt-5" width="150px" src="https://st3.depositphotos.com/15648834/17930/v/600/depositphotos_179308454-stock-illustration-unknown-person-silhouette-glasses-profile.jpg" alt="Image">#}
+{#                        <label class="label" for="{{ form.photo.id_for_label }}">{{ form.photo.label }}</label>#}
+{#                        {% csrf_token %}#}
+{#                        {{ form.photo.errors }}#}
+{#                        <span>{{ form.photo }}</span>#}
+{#                    </div>#}
+{#                </div>#}
+{#                <div class="col-md-5 border-right">#}
+{#                    <div class="p-3 py-5">#}
+{#                        <div class="d-flex justify-content-between align-items-center mb-3">#}
+{#                            <h4 class="text-right">Signing Up</h4>#}
+{#                        </div>#}
+{#                        <div class="row mt-2">#}
+{#                            <div class="col-md-6">#}
+{#                                {{ form.name.errors }}#}
+{#                                <label class="labels" for="{{ form.name.id_for_label }}">Name</label>#}
+{#                                {% csrf_token %}#}
+{#                                <input type="text" name="name" maxlength="15" required="" id="id_name" class="form-control">#}
+{#                            </div>#}
+{#                            <div class="col-md-6">#}
+{#                                {{ form.surname.errors }}#}
+{#                                <label class="labels" for="{{ form.surname.id_for_label }}">Surname</label>#}
+{#                                {% csrf_token %}#}
+{#                                <input type="text" name="surname" maxlength="15" required="" id="id_surname" class="form-control">#}
+{##}
+{#                            </div>#}
+{#                        </div>#}
+{#                        <div class="row mt-3">#}
+{#                            <div class="col-md-12">#}
+{#                                {{ form.email.errors }}#}
+{#                                <label class="labels" for="{{ form.email.id_for_label }}">{{ form.email.label}}</label>#}
+{#                                {% csrf_token %}#}
+{#                                <input type="email" name="email" maxlength="254" required="" id="id_email" class="form-control">#}
+{#                            </div>#}
+{#                            <div class="col-md-12">#}
+{#                                {{ form.email.errors }}#}
+{#                                <label class="labels" for="{{ form.job.id_for_label }}">{{ form.job.label}}</label>#}
+{#                                <select name="job" id="id_job" class="form-control">#}
+{#                                  <option value="STUDENT" selected="">student</option>#}
+{#                                  <option value="EDUCATOR">educator</option>#}
+{#                                </select>#}
+{#                            </div>#}
+{#                            <div class="col-md-12">#}
+{#                                {{ form.date_of_birth.errors }}#}
+{#                                <label class="labels" for="{{ form.date_of_birth.id_for_label }}">{{ form.date_of_birth.label }}</label>#}
+{#                                {% csrf_token %}#}
+{#                                <input type="date" class="form-control" name="date_of_birth" required="" id="id_date_of_birth">#}
+{#                            </div>#}
+{#                        </div>#}
+{#                        <div class="row mt-2">#}
+{#                            <div class="col-md-12">#}
+{#                                    {{ form.non_field_errors }}#}
+{#                                    {{ form.password.errors }}#}
+{#                                    <label class="labels" for="{{ form.password1.id_for_label }}">{{ form.password1.label }}</label>#}
+{#                                    {% csrf_token %}#}
+{#                                    <input type="password" class="form-control" name="password1" maxlength="36" required="" id="id_password1">#}
+{#                                <div class="col-md-12">#}
+{#                                    {{ form.confirm_password.errors }}#}
+{#                                    <label class="labels" for="{{ form.password2.id_for_label }}">{{ form.password2.label }}</label>#}
+{#                                    {% csrf_token %}#}
+{#                                    <input type="password" class="form-control" name="confirm_password" maxlength="36" required="" id="id_confirm_password">#}
+{#                                </div>#}
+{#                                <div class="mt-5 text-center"><button class="btn btn-primary profile-button" type="submit">Sign Up</button></div>#}
+{#                            </div>#}
+{#                    </div>#}
+{#                    </div>#}
+{#                </div>#}
+{#            </div>#}
+{#        </div>#}
+            <div class="container rounded bg-white mt-5 mb-5">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="flex-column align-items-center text-lg-left p-3 py-5">
+                {% csrf_token %}
+                        {{ form.errors }}
+                    {{ form|crispy }}
+                <button class="btn btn-primary profile-button" type="submit">Sign Up</button>
+                    </div>
+                </div>
+            </div>
+            </div>
+    </form>
+
+{% endblock %}

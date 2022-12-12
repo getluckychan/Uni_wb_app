@@ -1,0 +1,7 @@
+{%  extends 'base_generic.html' %}
+{% load crispy_forms_filters %}
+{%  block content %}
+    {% for i in tests %}
+        {{ i.as_div }}
+    {% endfor %}
+{% endblock %}

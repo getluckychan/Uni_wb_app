@@ -1,0 +1,29 @@
+{%  extends 'base_generic.html' %}
+{%  block content %}
+    <form action="{% url 'login' %}" method="post">
+         <div class="container rounded bg-white mt-5 mb-5">
+                 <div class="col-md-5">
+                     <div class="p-3 py-5">
+                        <div class="row mt-2">
+                            <div class="col-md-12">
+                                <h4 class="text-left">Signing In</h4>
+                                {{ form.non_field_errors }}
+                                {{ form.errors }}
+                                <label class="labels" for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                                {% csrf_token %}
+                                <input type="email" name="email" maxlength="254" required="" id="id_email" class="form-control">                                </div>
+                            <div class="col-md-12">
+                                {{ form.password.errors }}
+                                <label class="labels" for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+                                {% csrf_token %}
+                                <input type="password" class="form-control" name="password" maxlength="36" required="" id="id_password">
+                                <input type="checkbox" onclick="showPassword()"> Show password
+                            </div>
+                            <div class="mt-5 text-center"><button class="btn btn-primary profile-button" type="submit">Login</button></div>
+                        </div>
+                     </div>
+                 </div>
+             </div>
+    </form>
+
+{%  endblock %}

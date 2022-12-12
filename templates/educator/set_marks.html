@@ -1,0 +1,10 @@
+{%  extends 'base_generic.html' %}
+{% load crispy_forms_filters %}
+{%  block content %}
+        <form action="{% url 'set_marks' %}" method="post">
+            {% csrf_token %}
+            {{ form.errors }}
+            {{ form|crispy }}
+            <button class="btn btn-primary profile-button" type="submit">Save Mark</button>
+        </form>
+{% endblock %}

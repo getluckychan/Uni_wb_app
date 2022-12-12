@@ -1,0 +1,20 @@
+{%  extends 'base_generic.html' %}
+{% load crispy_forms_filters %}
+{%  block content %}
+    <form action="{% url 'sign_up_student' user_id=user.pk %}" method="post">
+
+                    <div class="container rounded bg-white mt-5 mb-5">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="flex-column align-items-center text-lg-left p-3 py-5">
+                {% csrf_token %}
+                        {{ form.errors }}
+                    {{ form|crispy }}
+                <button class="btn btn-primary profile-button" type="submit">Sign Up</button>
+                    </div>
+                </div>
+            </div>
+            </div>
+    </form>
+
+{% endblock %}
