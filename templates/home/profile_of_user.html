@@ -1,10 +1,6 @@
-{% extends 'base_generic.html' %}
-{% load crispy_forms_filters %}
+{%  extends 'base_generic.html' %}
 {% block content %}
-
-    <section class="vh-100"
-
-             style="background-color: #f4f5f7;">
+    <section class="vh-100" style="background-color: #f4f5f7;">
   <div class="container py-5 h-100">
     <div class="row d-flex justify-content-center align-items-center h-100">
       <div class="col col-lg-6 mb-4 mb-lg-0">
@@ -12,13 +8,13 @@
           <div class="row g-0">
             <div class="col-md-4 gradient-custom text-center text-white"
               style="border-top-left-radius: .5rem; border-bottom-left-radius: .5rem;">
-                {% if user.avatar %}
-              <img src="{{ user.avatar.url }}"
+                {% if object_list.avatar %}
+              <img src="{{ object_list.avatar }}"
                 alt="Avatar" class="img-fluid my-5" style="width: 80px;" />
                 {% endif %}
-              <h5 class="text-dark">{{ user.full_name }}</h5>
-              <p class="text-dark">{{ job }}</p>
-              <i class="far fa-edit mb-5"></i>
+              <h5>{{ object_list.full_name }}</h5>
+              <p>{{ job }}</p>
+{#              <i class="far fa-edit mb-5"></i>#}
             </div>
             <div class="col-md-8">
               <div class="card-body p-4">
@@ -27,14 +23,13 @@
                 <div class="row pt-1">
                   <div class="col-6 mb-3">
                     <h6>Email</h6>
-                    <p class="text-muted">{{ user.email }}</p>
+                    <p class="text-muted">{{ object_list.email }}</p>
                   </div>
                   <div class="col-6 mb-3">
+                    <h6>Phone</h6>
                       {% if user.is_student is True %}
-                          <h6>Speciality</h6>
                     <p class="text-muted">{{ info.speciality }}</p>
                         {% elif user.is_educator is True %}
-                          <h6>Department</h6>
                       <p class="text-muted">{{ info.department }}</p>
                         {% endif %}
                   </div>

@@ -36,3 +36,51 @@ class MyUserManager(BaseUserManager):
         user.is_admin = True
         user.save(using=self._db)
         return user
+
+    def create_student(self, email, full_name, date_of_birth, password=None):
+        """
+        Creates and saves a student with the given email, date of
+        birth and password.
+        """
+        user = self.create_user(
+            email,
+            password=password,
+            full_name=full_name,
+            date_of_birth=date_of_birth,
+        )
+
+        user.is_student = True
+        user.save(using=self._db)
+        return user
+
+    def create_educator(self, email, full_name, date_of_birth, password=None):
+        """
+        Creates and saves a educator with the given email, date of
+        birth and password.
+        """
+        user = self.create_user(
+            email,
+            password=password,
+            full_name=full_name,
+            date_of_birth=date_of_birth,
+        )
+
+        user.is_educator = True
+        user.save(using=self._db)
+        return user
+
+    def create_unistuff(self, email, full_name, date_of_birth, password=None):
+        """
+        Creates and saves a unistuff with the given email, date of
+        birth and password.
+        """
+        user = self.create_user(
+            email,
+            password=password,
+            full_name=full_name,
+            date_of_birth=date_of_birth,
+        )
+
+        user.is_unistuff = True
+        user.save(using=self._db)
+        return user

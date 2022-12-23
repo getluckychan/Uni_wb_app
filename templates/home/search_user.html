@@ -1,0 +1,12 @@
+{% extends 'base_generic.html' %}
+{%  block content %}
+<form action="{% url 'search_user' %}" method="get">
+  <input
+    type="search"
+    name="q"
+    placeholder="Search by name or quote..."
+    class="form-control"
+  />
+</form>
+
+{% endblock %}

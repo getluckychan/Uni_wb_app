@@ -1,15 +1,28 @@
+import json
+
+from django.conf import settings
 from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User, Permission
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.shortcuts import render, redirect
-from django.views.generic import CreateView
+from django.utils.decorators import method_decorator
+from django.views.generic import *
 from django.core.exceptions import ObjectDoesNotExist
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.views.generic.edit import ModelFormMixin
+
 from .forms import *
 from .utils import *
 
+
 # TODO: create a new view for index page
+
+def find_if_student(user):
+    user = get_object_or_404(MyUser, pk=user.pk)
+    if user.is_student:
+        return HttpResponseRedirect(reverse('declined_area'))
 
 
 def index(request):
@@ -18,7 +31,7 @@ def index(request):
             'menu': menu_not_login,
             'title': 'Home page'
         }
-        return render(request, 'home/home.html', context=contex)
+        return HttpResponseRedirect(reverse('login'))
 
     current_user = get_object_or_404(MyUser, pk=request.user.id)
     if current_user.is_student is True:
@@ -33,40 +46,115 @@ def index(request):
     return render(request, 'home/home.html', context=contex)
 
 
-
-
 def about(request):
     return HttpResponse('About page')
 
 
-@login_required(login_url='/login/')
-def my_profile(request):
-    current_user = get_object_or_404(MyUser, pk=request.user.id)
-    if current_user.is_student is True:
-        menu = menu_student
-    elif current_user.is_educator is True:
-        menu = menu_educator
-    else:
-        menu = menu_not_login
-        if request.method == 'POST':
-            form = UserSetUp(request.POST)
-            job = form.cleaned_data['job']
-            if job == 'STUDENT':
-                current_user.is_student = True
-                current_user.save()
-                return HttpResponseRedirect(reverse('sign_up_student', args=[current_user.pk]))
-            elif job == 'EDUCATOR':
-                current_user.is_educator = True
-                current_user.save()
-                return HttpResponseRedirect(reverse('sign_up_educator', args=[current_user.pk]))
+class MyProfileView(ListView, LoginRequiredMixin):
+    template_name = 'home/profile.html'
 
-        contex = {
-            'menu': menu,
-            'title': 'Home page',
-            'name': current_user.full_name,
-        }
-        return render(request, 'home/home.html', context=contex)
+    def get_queryset(self):
+        self.user = get_object_or_404(MyUser, pk=self.request.user.id)
+        return MyUser.objects.filter(id=self.user.id)
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.user.is_student:
+            context['menu'] = menu_student
+            context['info'] = Student.objects.get(user_id=self.user.id)
+            context['job'] = 'Student'
+        elif self.user.is_educator:
+            context['job'] = 'Educator'
+            context['info'] = Educator.objects.get(user_id=self.user.id)
+            context['menu'] = menu_educator
+        context['title'] = 'My profile'
+        context['user'] = self.user
+        context['name'] = self.user.full_name
+        return context
+
+
+class EditMyProfileView(LoginRequiredMixin, UpdateView):
+    model = MyUser
+    template_name = 'home/edit_profile.html'
+    # form_class = EditMyProfileForm
+    success_url = '/'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.user.is_student:
+            context['menu'] = menu_student
+        elif self.request.user.is_educator:
+            context['menu'] = menu_educator
+        context['title'] = 'Edit profile'
+        context['name'] = self.request.user.full_name
+        return context
+
+    def get_object(self, queryset=None):
+        return get_object_or_404(MyUser, pk=self.request.user.id)
+
+    def form_valid(self, form):
+        form.save()
+        return redirect('/')
+
+
+class ProfileView(ListView, LoginRequiredMixin):
+    template_name = 'home/profile_of_user.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.id == self.kwargs['user_id']:
+            return HttpResponseRedirect(reverse('my_profile'))
+        if request.user.is_educator:
+            self.menu = menu_educator
+        elif request.user.is_student:
+            self.menu = menu_student
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        self.user = get_object_or_404(MyUser, pk=self.kwargs['user_id'])
+        return MyUser.objects.filter(id=self.user.id)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.user.is_student:
+            context['job'] = 'Student'
+            info = Student.objects.get(user_id=self.user.id)
+        elif self.user.is_educator:
+            context['job'] = 'Educator'
+            info = Educator.objects.get(user_id=self.user.id)
+        context['info'] = info
+        context['menu'] = self.menu
+        context['title'] = 'Profile'
+        context['user'] = self.user
+        context['name'] = self.user.full_name
+        return context
+
+
+class SearchUserView(ListView, LoginRequiredMixin):
+    model = MyUser
+    template_name = 'home/search_user.html'
+    context_object_name = 'users'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['qs_json'] = json.dumps(list(self.get_queryset().values()))
+        context['menu'] = self.menu
+        context['title'] = 'Search user'
+        context['name'] = self.user.full_name
+        return context
+
+    def dispatch(self, request, *args, **kwargs):
+        self.user = get_object_or_404(MyUser, pk=self.request.user.id)
+        if request.user.is_educator:
+            self.menu = menu_educator
+        elif request.user.is_student:
+            self.menu = menu_student
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q')
+        if query:
+            return MyUser.objects.filter(full_name__icontains=query)
+        return MyUser.objects.none()
 
 
 def declined_area(request):
@@ -88,317 +176,295 @@ def declined_area(request):
     return render(request, 'areas/declined.html', context=contex)
 
 
-def profile(request, user_id):
-    if request.user.is_authenticated:
-        user = get_object_or_404(MyUser, pk=user_id)
+class SignUpView(CreateView):
+    # registration view
+    form_class = UserCreateForm
+    success_url = '/signup-as/'
+    template_name = 'registration/registration.html'
+
+    def form_valid(self, form):
+        user = form.save()
+        login(self.request, user)
+        # check if user is student or educator
         if user.is_student is True:
-            profile = Student.objects.get(user=user)
-            info = [profile.user, profile.speciality, profile.acception]
-            menu = menu_student
+            return HttpResponseRedirect(reverse('sign_up_student', args=[user.pk]))
         elif user.is_educator is True:
-            profile = Educator.objects.get(user=user)
-            info = [profile.user, profile.rank, profile.department]
-            menu = menu_educator
+            return HttpResponseRedirect(reverse('sign_up_educator', args=[user.pk]))
+        return redirect('my_profile')
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['menu'] = menu_not_login
+        context['title'] = 'Registration'
+        return context
+
+
+class SignUpStudentView(CreateView):
+    # create student profile
+    form_class = SignUpAsStudentForm
+    success_url = '/my-profile/'
+    template_name = 'registration/as_student.html'
+
+    @method_decorator(login_required(login_url='/login/'))
+    def dispatch(self, *args, **kwargs):
+        return super(SignUpStudentView, self).dispatch(*args, **kwargs)
+
+    def form_valid(self, form):
+        user = get_object_or_404(MyUser, pk=self.kwargs['user_id'])
+        form.instance.user = user
+        form.save()
+        return redirect('my_profile')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['menu'] = menu_not_login
+        context['title'] = 'Registration'
+        return context
+
+
+class SignUpEducatorView(CreateView):
+    # create educator profile
+    form_class = SignUpAsEducatorForm
+    success_url = '/my_profile/'
+    template_name = 'registration/as_educator.html'
+
+    @method_decorator(login_required(login_url='/login/'))
+    def dispatch(self, *args, **kwargs):
+        return super(SignUpEducatorView, self).dispatch(*args, **kwargs)
+
+    def form_valid(self, form):
+        user = get_object_or_404(MyUser, pk=self.request.user.id)
+        form.instance.user = user
+        form.save()
+        return redirect('my_profile')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['menu'] = menu_not_login
+        context['title'] = 'Registration'
+        return context
+
+
+class LogoutView(View):
+    def get(self, request):
+        logout(request)
+        return HttpResponseRedirect(reverse('login'))
+
+
+class LoginPageView(View):
+    template_name = 'registration/login.html'
+    form_class = LoginForm
+
+    def get(self, request):
+        form = self.form_class()
+        message = ''
         context = {
-            'user': user,
-            'menu': menu,
-            'title': user.full_name,
-            'info': info,
-        }
-        return render(request, 'home/profile.html', context=context)
-    else:
-        contex = {
-            'menu': menu_not_login,
-            'title': 'Home page'
-        }
-        return render(request, 'home/home.html', context=contex)
-
-
-def register(request):
-    if request.method == 'POST':
-        form = RegistrationForm(request.POST)
-        if form.is_valid():
-            email = form.cleaned_data['email']
-            full_name = form.cleaned_data['full_name']
-            date_of_birth = form.cleaned_data['date_of_birth']
-            job = form.cleaned_data['job']
-            password = form.cleaned_data['password']
-            print(form.cleaned_data)
-            user = MyUser.objects.create_user(email, full_name, date_of_birth, password)
-            if job == 'STUDENT':
-                user.is_student = True
-                user.save()
-                my_bitch = authenticate(request, email=email, password=password)
-                login(request, my_bitch)
-                request.session['user_id'] = user.pk
-                return HttpResponseRedirect(reverse('sign_up_student', args=[user.pk]))
-            elif job == 'EDUCATOR':
-                user.is_educator = True
-                user.save()
-                my_bitch = authenticate(request, email=email, password=password)
-                login(request, my_bitch)
-                request.session['user_id'] = user.pk
-                return HttpResponseRedirect(reverse('sign_up_educator', args=[user.pk]))
-
-                # return redirect('sign_up_student', kwargs={'user': user})
-    else:
-        form = RegistrationForm()
-        context = {
-            'menu': menu_not_login,
             'form': form,
-            'title': 'Sign Up'
-        }
-        return render(request, 'registration/registration.html', context=context)
-
-
-def sign_up_student(request, user_id):
-    if request.method == 'POST':
-        form = StudentSetUpForm(request.POST)
-        if form.is_valid():
-            speciality = form.cleaned_data['speciality']
-            acception = form.cleaned_data['acception']
-            graduation = form.cleaned_data['graduation']
-            user = MyUser.objects.get(pk=user_id)
-            student = Student.objects.create(user=user,
-                                             speciality=speciality,
-                                             acception=acception,
-                                             graduation=graduation
-                                             )
-            student.save()
-            request.session['user_id'] = user.pk
-            return HttpResponseRedirect(reverse('profile', args=[user.pk]))
-    else:
-        form = StudentSetUpForm()
-        context = {
             'menu': menu_not_login,
-            'form': form,
-            'title': 'Sign Up as Student'
+            'title': 'Login',
+            'message': message
         }
-        return render(request, 'registration/as_student.html', context=context)
+        return render(request, self.template_name, context=context)
 
-
-def sign_up_educator(request, user_id):
-    if request.method == 'POST':
-        form = EducatorSetUpForm(request.POST)
+    def post(self, request):
+        form = self.form_class(request.POST)
         if form.is_valid():
-            rank = form.cleaned_data['rank']
-            department = form.cleaned_data['department']
-            acception = form.cleaned_data['acception']
-            user = MyUser.objects.get(pk=user_id)
-            educator = Educator.objects.create(user=user,
-                                               rank=rank,
-                                               department=department,
-                                               acception=acception
-                                               )
-            educator.save()
-            request.session['user_id'] = user.pk
-            return HttpResponseRedirect(reverse('my_profile'))
-
-    else:
-        form = EducatorSetUpForm()
-        context = {
-            'menu': menu_not_login,
-            'form': form,
-            'title': 'Sign Up as Student'
-        }
-        return render(request, 'registration/as_educator.html', context=context)
+            user = authenticate(
+                username=form.cleaned_data['email'],
+                password=form.cleaned_data['password'],
+            )
+            if user is not None:
+                login(request, user)
+                return redirect('index')
+        message = 'Login failed!'
+        return render(request, self.template_name, context={'form': form, 'message': message})
 
 
-def logout_view(request):
-    logout(request)
-    contex = {
-        'menu': menu_not_login,
-        'title': 'Home page',
-        'text': 'Logout successful'
-    }
-    return render(request, 'home/home.html', context=contex)
+class CreateTestView(CreateView):
+    form_class = CreateTestForm
+    template_name = 'educator/create_test.html'
 
-
-def login_in(request):
-    if request.method == 'POST':
-        form = LoginForm(request.POST)
-        if form.is_valid():
-            email = form.cleaned_data['email']
-            password = form.cleaned_data['password']
-            try:
-                user = authenticate(request, email=email, password=password)
-                if user is not None:
-                    login(request, user)
-                    return HttpResponseRedirect(reverse('my_profile'))
-                else:
-                    print(form.errors)
-                    return form.add_error(None, 'Incorrect email or password')
-            except Exception:
-                return form.add_error(None, 'Something went wrong, please try again')
-    else:
-        form = LoginForm()
-        context = {
-            'menu': menu_not_login,
-            'form': form,
-            'title': 'Sign In'
-        }
-        return render(request, 'registration/login.html', context=context)
-
-
-def create_test(request):
-    if request.user.is_authenticated:
-        current_user = get_object_or_404(MyUser, pk=request.user.id)
-        if current_user.is_educator is True:
-            if request.method == 'POST':
-                form = CreateTestForm(request.POST)
-                if form.is_valid():
-                    data = form.cleaned_data
-                    theme = data['theme']
-                    subject = data['subject']
-                    time = data['time']
-                    author = educator_recognizer(current_user.pk)
-                    test = Test.objects.create(theme=theme,
-                                               author=author,
-                                               subject=subject,
-                                               time=time)
-                    test.save()
-                    return HttpResponseRedirect(reverse('create_task', args=[test.pk]))
-            else:
-                form = CreateTestForm()
-                context = {
-                    'menu': menu_educator,
-                    'form': form,
-                    'title': 'Create test',
-                    'name': current_user.full_name,
-                }
-                return render(request, 'educator/create_test.html', context=context)
-        else:
+    @method_decorator(login_required(login_url='/login/'))
+    def dispatch(self, *args, **kwargs):
+        self.user = get_object_or_404(MyUser, pk=self.request.user.id)
+        if self.user.is_educator is False:
             return HttpResponseRedirect(reverse('declined_area'))
+        return super(CreateTestView, self).dispatch(*args, **kwargs)
 
-    else:
-        contex = {
-            'menu': menu_not_login,
-            'title': 'Home page'
-        }
-        return render(request, 'home/home.html', context=contex)
+    def form_valid(self, form):
+        educator = educator_recognizer(self.user)
+        form.instance.author = educator
+        new_test = form.save()
+        object_of_test = Test.objects.get(id=new_test.id).pk
+        return HttpResponseRedirect(reverse('create_task', args=[object_of_test]))
 
-
-# FIXME: add test creator and fix function create_task
-def create_task(request, test_id):
-    if request.user.is_authenticated:
-        current_user = get_object_or_404(MyUser, pk=request.user.id)
-        if current_user.is_educator is True:
-            if request.method == 'POST':
-                form = CreateTaskForm(request.POST)
-                if form.is_valid():
-                    data = form.cleaned_data
-                    question = data['question']
-                    correct_answer = data['correct_answer']
-                    incorrect_answers = data['incorrect_answers']
-                    test = Test.objects.get(pk=test_id)
-                    task = Task.objects.create(test=test,
-                                               question=question,
-                                               )
-                    task.save()
-                    answer_correct_in_data = Answer.objects.create(task, correct_answer)
-                    answer_correct_in_data.save()
-                    in_cor = incorrect_answers.split('|')
-                    for i in in_cor:
-                        answer_incorrect_in_data = Answer.objects.create(task, i)
-                        answer_incorrect_in_data.save()
-                    return HttpResponseRedirect(reverse('create_task', args=[test.pk]))
-            else:
-                form = CreateTaskForm()
-                tests = Test.objects.get(pk=test_id)
-                form_test = TestForm(instance=tests)
-                try:
-                    tasks = Task.objects.get(test_id=test_id)
-                    form_task = TaskForm(instance=tasks)
-                    answers = Answer.objects.get(task_id=tasks.pk)
-                    tittle = answers.answer
-                    correctnes = answers.correctness
-                    context = {
-                        'menu': menu_educator,
-                        'form': form,
-                        'form_test': form_test,
-                        'form_task': form_task,
-                        'name': current_user.full_name,
-                    }
-                    return render(request, 'educator/create_task.html', context=context)
-                except Task.DoesNotExist:
-                    context = {
-                        'menu': menu_educator,
-                        'form': form,
-                        'form_test': form_test,
-                        'name': current_user.full_name,
-                    }
-                    return render(request, 'educator/create_task.html', context=context)
-                except Answer.DoesNotExist:
-                    tasks = Task.objects.get(test_id=test_id)
-                    form_task = TaskForm(instance=tasks)
-                    context = {
-                        'menu': menu_educator,
-                        'form': form,
-                        'form_test': form_test,
-                        'form_task': form_task,
-                        'name': current_user.full_name,
-                    }
-                    return render(request, 'educator/create_task.html', context=context)
-    else:
-        return HttpResponseRedirect(reverse('declined_area'))
+    def get_context_data(self, **kwargs):
+        # form = CreateTestForm(instance=)
+        context = super().get_context_data(**kwargs)
+        context['menu'] = menu_educator
+        context['title'] = 'Create test'
+        context['name'] = self.user.full_name
+        return context
 
 
-def set_marks(request):
-    if request.user.is_authenticated:
-        current_user = get_object_or_404(MyUser, pk=request.user.id)
-        if current_user.is_educator is True:
-            if request.method == 'POST':
-                form = CreateMarkForm(request.POST)
-                if form.is_valid():
-                    data = form.cleaned_data
-                    student = Student.objects.get(user=data['student'])
-                    subject = Subjects.objects.get(subject_name=data['subject'])
-                    mark = data['mark']
-                    educator = educator_recognizer(current_user.pk)
-                    setted_mark = Marks.objects.create(student=student,
-                                                       subject=subject,
-                                                       mark=mark,
-                                                       setted_by=educator)
-                    setted_mark.save()
-                    return HttpResponse('saved')
-            else:
-                form = CreateMarkForm()
-                context = {
-                    'menu': menu_educator,
-                    'form': form,
-                    'name': current_user.full_name,
-                }
-                return render(request, 'educator/set_marks.html', context=context)
-    else:
-        return HttpResponseRedirect(reverse('declined_area'))
+class CreateTaskView(CreateView):
+    form_class = TaskForm
+    template_name = 'educator/create_task.html'
+
+    @method_decorator(login_required(login_url='/login/'))
+    def dispatch(self, *args, **kwargs):
+        self.user = get_object_or_404(MyUser, pk=self.request.user.id)
+        if self.user.is_educator is False:
+            return HttpResponseRedirect(reverse('declined_area'))
+        return super(CreateTaskView, self).dispatch(*args, **kwargs)
+
+    def form_valid(self, form):
+        test = get_object_or_404(Test, pk=self.kwargs['test_id'])
+        form.instance.test = test
+        new_task = form.save()
+        object_of_task = Task.objects.get(id=new_task.id).pk
+        return HttpResponseRedirect(reverse('create_answer', args=[object_of_task]))
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['menu'] = menu_educator
+        context['title'] = 'Create task'
+        context['name'] = self.user.full_name
+        try:
+            context['test'] = Test.objects.get(pk=self.kwargs['test_id'])
+            context['tasks'] = Task.objects.filter(test=self.kwargs['test_id'])
+            context['answers'] = Answer.objects.filter(task__test=self.kwargs['test_id'])
+        except Test.DoesNotExist:
+            context['test'] = None
+        except Task.DoesNotExist:
+            context['tasks'] = None
+        except Answer.DoesNotExist:
+            context['answers'] = None
+        return context
 
 
-def show_tests(request):
-    if request.user.is_authenticated:
-        current_user = get_object_or_404(MyUser, pk=request.user.id)
-        if current_user.is_educator is True:
-            tests = Test.objects.all()
-            context = {
-                'menu': menu_educator,
-                'tests': tests,
-                'name': current_user.full_name,
-            }
-            return render(request, 'educator/show_tests.html', context=context)
-    else:
-        return HttpResponseRedirect(reverse('declined_area'))
+class CreateAnswerView(CreateView):
+    form_class = AnswerForm
+    success_url = '/create_task/'
+    template_name = 'educator/create_answer.html'
+
+    @method_decorator(login_required(login_url='/login/'))
+    def dispatch(self, *args, **kwargs):
+        self.user = get_object_or_404(MyUser, pk=self.request.user.id)
+        if self.user.is_educator is False:
+            return HttpResponseRedirect(reverse('declined_area'))
+        return super(CreateAnswerView, self).dispatch(*args, **kwargs)
+
+    def form_valid(self, form):
+        task = get_object_or_404(Task, pk=self.kwargs['task_id'])
+        form.instance.task = task
+        form.save()
+        if 'add_another' in self.request.POST:
+            return HttpResponseRedirect(reverse('create_answer', args=[self.kwargs['task_id']]))
+        elif 'add_task' in self.request.POST:
+            return HttpResponseRedirect(reverse('create_task', args=[task.test.id]))
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['menu'] = menu_educator
+        context['title'] = 'Create answer'
+        context['name'] = self.user.full_name
+        try:
+            context['task'] = Task.objects.get(pk=self.kwargs['task_id'])
+            context['answers'] = Answer.objects.filter(task=self.kwargs['task_id'])
+        except Task.DoesNotExist:
+            context['task'] = None
+        except Answer.DoesNotExist:
+            context['answers'] = None
+        return context
 
 
-def chat_page(request, *args, **kwargs):
-    if not request.user.is_authenticated:
-        return redirect('login')
-    current_user = get_object_or_404(MyUser, pk=request.user.id)
-    if current_user.is_educator is True:
-        menu = menu_educator
-    elif current_user.is_student is True:
-        menu = menu_student
-    context = {
-        'menu': menu,
-        'name': current_user.full_name,
-    }
-    return render(request, "chat/chat_page.html", context)
+class CreateMarkView(CreateView):
+    form_class = CreateMarkForm
+    template_name = 'educator/set_marks.html'
+
+    @method_decorator(login_required(login_url='/login/'))
+    def dispatch(self, *args, **kwargs):
+        self.user = get_object_or_404(MyUser, pk=self.request.user.id)
+        if self.user.is_educator is False:
+            return HttpResponseRedirect(reverse('declined_area'))
+        return super(CreateMarkView, self).dispatch(*args, **kwargs)
+
+    def form_valid(self, form):
+        educator = Educator.objects.get(get_object_or_404(MyUser, pk=self.request.user.id))
+        group = Groups.objects.get(curator=educator)
+        student = Student.objects.get_queryset(group=group)
+        form.instance.setted_by = educator
+        form.instance.student = student
+        form.save()
+        return HttpResponseRedirect(reverse('set_marks'))
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['menu'] = menu_educator
+        context['title'] = 'Create mark'
+        context['name'] = self.user.full_name
+        return context
+
+
+class ShowTestsView(ListView):
+    model = Test
+    template_name = 'educator/show_tests.html'
+
+    @method_decorator(login_required(login_url='/login/'))
+    def dispatch(self, *args, **kwargs):
+        self.user = get_object_or_404(MyUser, pk=self.request.user.id)
+        if self.user.is_educator is False:
+            return HttpResponseRedirect(reverse('declined_area'))
+        return super(ShowTestsView, self).dispatch(*args, **kwargs)
+
+    def get_queryset(self):
+        self.educator = educator_recognizer(self.request.user.id)
+        return Test.objects.filter(author=self.educator)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['menu'] = menu_educator
+        context['title'] = 'Show tests'
+        context['name'] = self.user.full_name
+        return context
+
+
+class ShowDetailTestView(DetailView):
+    model = Test
+    template_name = 'educator/show_detail_test.html'
+
+    @method_decorator(login_required(login_url='/login/'))
+    def dispatch(self, *args, **kwargs):
+        self.user = get_object_or_404(MyUser, pk=self.request.user.id)
+        if self.user.is_educator is False:
+            return HttpResponseRedirect(reverse('declined_area'))
+        return super(ShowDetailTestView, self).dispatch(*args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['menu'] = menu_educator
+        context['title'] = 'Show detail test'
+        context['name'] = self.user.full_name
+        try:
+            context['tasks'] = Task.objects.filter(test=self.kwargs['pk'])
+            context['answers'] = Answer.objects.filter(task__test=self.kwargs['pk'])
+        except Task.DoesNotExist:
+            context['tasks'] = None
+        except Answer.DoesNotExist:
+            context['answers'] = None
+        return context
+
+
+def get_courses_for_student(request, *args, **kwargs):
+    if request.method == 'GET':
+        speciality = request.GET.get('speciality')
+        subjects = Subjects.objects.filter(speciality=speciality)
+        return JsonResponse({'subjects': list(subjects.values())})
+
+
+def get_marks_for_student(request, *args, **kwargs):
+    if request.method == 'GET':
+        student = request.GET.get('student')
+        marks = Marks.objects.filter(student=student)
+        return JsonResponse({'marks': list(marks.values())})

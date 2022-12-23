@@ -16,6 +16,7 @@ class MyUser(AbstractBaseUser, PermissionsMixin):
     )
     full_name = models.CharField(max_length=150)
     date_of_birth = models.DateField()
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
     is_student = models.BooleanField(default=False)
     is_educator = models.BooleanField(default=False)
     is_unistuff = models.BooleanField(default=False)
@@ -49,12 +50,16 @@ class MyUser(AbstractBaseUser, PermissionsMixin):
         # Simplest possible answer: All admins are staff
         return self.is_admin
 
+    def get_absolute_url(self):
+        return reverse('my_profile', kwargs={'pk': self.pk})
+
 
 class Student(models.Model):
     user = models.OneToOneField(MyUser, on_delete=models.CASCADE, primary_key=True)
     speciality = models.ForeignKey('Speciality', on_delete=models.CASCADE, null=True, unique=False)
     acception = models.DateField(unique=False)
     graduation = models.DateField(unique=False)
+    group = models.ForeignKey('Groups', on_delete=models.CASCADE, null=True, unique=False)
 
     class Meta:
         permissions = (
@@ -70,7 +75,7 @@ class Student(models.Model):
 
 class Educator(models.Model):
     user = models.OneToOneField(MyUser, on_delete=models.CASCADE, primary_key=True)
-    rank = models.ForeignKey('Rank', on_delete=models.CASCADE, unique=False)
+    rank = models.ForeignKey('Rank', on_delete=models.CASCADE, unique=False, null=True)
     department = models.ForeignKey('Department', on_delete=models.CASCADE, null=True, unique=False)
     acception = models.DateField()
 
@@ -197,35 +202,7 @@ class Groups(models.Model):
         )
 
     def __str__(self):
-        return self.group_number and self.course
-
-
-class ListOfStudentPerGroup(models.Model):
-    student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    group = models.ForeignKey(Groups, on_delete=models.CASCADE)
-
-    class Meta:
-        permissions = (
-            ('can_view_listofstudentpergroup', 'Can view listofstudentpergroup'),
-            ('can_edit_listofstudentpergroup', 'Can edit listofstudentpergroup'),
-            ('can_delete_listofstudentpergroup', 'Can delete listofstudentpergroup'),
-            ('can_add_listofstudentpergroup', 'Can add listofstudentpergroup'),
-        )
-
-
-class Message(models.Model):
-    text = models.CharField(max_length=255, unique=False)
-
-    class Meta:
-        permissions = (
-            ('can_view_message', 'Can view message'),
-            ('can_edit_message', 'Can edit message'),
-            ('can_delete_message', 'Can delete message'),
-            ('can_add_message', 'Can add message'),
-        )
-
-    def __str__(self):
-        return self.text
+        return f'{self.speciality}{self.course}{self.group_number}'
 
 
 class SpecialityInDepartment(models.Model):
@@ -266,7 +243,6 @@ class Test(models.Model):
     subject = models.ForeignKey(Subjects, on_delete=models.CASCADE, unique=False)
     time = models.DurationField(unique=False)
     date = models.DateField()
-    group = models.ForeignKey(Groups, on_delete=models.CASCADE, unique=False)
 
     class Meta:
         permissions = (
@@ -277,7 +253,7 @@ class Test(models.Model):
         )
 
     def __str__(self):
-        return self.theme and self.author
+        return self.theme
 
 
 class Task(models.Model):
@@ -329,4 +305,5 @@ class StudentTest(models.Model):
 
     def __str__(self):
         return self.student and self.test
+
 

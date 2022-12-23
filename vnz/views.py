@@ -46,11 +46,6 @@ class GroupsViewSet(ModelViewSet):
     serializer_class = GroupsModelSerializer
 
 
-class ListOfStudentPerGroupViewSet(ModelViewSet):
-    queryset = ListOfStudentPerGroup.objects.all()
-    serializer_class = ListOfStudentPerGroupModelSerializer
-
-
 class ListOfUsersViewSet(ModelViewSet):
     queryset = MyUser.objects.all()
     serializer_class = ListOfUsersSerializer

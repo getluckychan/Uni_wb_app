@@ -1,0 +1,17 @@
+{%  extends 'base_generic.html' %}
+{% load crispy_forms_filters %}
+{%  block content %}
+        {{ task }}
+    <p>{% for m in answers.answer %}
+
+        {{ m }}
+    {% endfor %}
+    </p>
+        <form action="{% url 'create_answer' task.pk %}" method="post">
+            {% csrf_token %}
+            {{ form.errors }}
+            {{ form|crispy }}
+            <button class="btn btn-primary profile-button" type="submit" name="add_task">Submit and Save</button>
+            <button class="btn btn-primary profile-button" type="submit" name="add_another" href="{% url 'create_answer' task.id %}">Add another answer</button>
+        </form>
+{% endblock %}
