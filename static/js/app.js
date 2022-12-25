@@ -24,4 +24,3 @@ function showCurrentPassword() {
       x.type = "password";
     }
 }
-

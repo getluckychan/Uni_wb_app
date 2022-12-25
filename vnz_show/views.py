@@ -101,6 +101,7 @@ class ProfileView(ListView, LoginRequiredMixin):
     template_name = 'home/profile_of_user.html'
 
     def dispatch(self, request, *args, **kwargs):
+        self.auth_user = get_object_or_404(MyUser, pk=request.user.id)
         if request.user.id == self.kwargs['user_id']:
             return HttpResponseRedirect(reverse('my_profile'))
         if request.user.is_educator:
@@ -124,37 +125,47 @@ class ProfileView(ListView, LoginRequiredMixin):
         context['info'] = info
         context['menu'] = self.menu
         context['title'] = 'Profile'
-        context['user'] = self.user
-        context['name'] = self.user.full_name
+        context['user'] = self.auth_user
+        context['searched_user'] = self.user
+        context['name'] = self.request.user.full_name
         return context
 
 
-class SearchUserView(ListView, LoginRequiredMixin):
-    model = MyUser
-    template_name = 'home/search_user.html'
-    context_object_name = 'users'
+# def search_results(request):
+#     if request.accepts("application/json"):
+#         search = request.POST.get('data')
+#         print(search)
+#         return JsonResponse({'search': search})
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['qs_json'] = json.dumps(list(self.get_queryset().values()))
-        context['menu'] = self.menu
-        context['title'] = 'Search user'
-        context['name'] = self.user.full_name
-        return context
+class MyUserSearchView(View):
+    def post(self, request, *args, **kwargs):
+        context = {}
+        if request.accepts("application/json"):
+            res = None
+            search_query = request.POST.get("data")
+            qs = MyUser.objects.filter(full_name__icontains=search_query)
+            if len(search_query) and len(qs):
+                data = []
+                for i in qs:
+                    searched_user = get_object_or_404(MyUser, pk=i.id)
+                    if searched_user.is_student:
+                        job = 'Student'
+                    elif searched_user.is_educator:
+                        job = 'Educator'
+                    item = {
+                        'pk': i.pk,
+                        'full_name': i.full_name,
+                        'job': job,
+                        'avatar': str(i.avatar.url if i.avatar else None),
+                    }
+                    data.append(item)
+                res = data
+            else:
+                res = 'No results'
 
-    def dispatch(self, request, *args, **kwargs):
-        self.user = get_object_or_404(MyUser, pk=self.request.user.id)
-        if request.user.is_educator:
-            self.menu = menu_educator
-        elif request.user.is_student:
-            self.menu = menu_student
-        return super().dispatch(request, *args, **kwargs)
+            return JsonResponse({'search': res})
+        return JsonResponse({})
 
-    def get_queryset(self):
-        query = self.request.GET.get('q')
-        if query:
-            return MyUser.objects.filter(full_name__icontains=query)
-        return MyUser.objects.none()
 
 
 def declined_area(request):
@@ -256,6 +267,8 @@ class LoginPageView(View):
     form_class = LoginForm
 
     def get(self, request):
+        if request.user.is_authenticated:
+            return redirect('my_profile')
         form = self.form_class()
         message = ''
         context = {

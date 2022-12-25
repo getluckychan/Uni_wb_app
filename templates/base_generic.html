@@ -1,159 +1,188 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    {% load static %}
-    {% load crispy_forms_filters %}
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-alpha1/dist/css/bootstrap.min.css">
-    <title>{{ title }}</title>
-    <script src="{% static 'js/app.js' %}"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js"></script>
-</head>
-<body>
-{% block mainmenu %}
-    <header>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-  <!-- Container wrapper -->
-      <div class="container-fluid">
-        <!-- Toggle button -->
-        <button
-          class="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarSupportedContent"
-          aria-controls="navbarSupportedContent"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
-        >
-            <span class="navbar-toggler-icon"></span>
-        </button>
+	<head>
+		{% load static %}
+		{% load crispy_forms_filters %}
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-alpha1/dist/css/bootstrap.min.css">
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+		<link rel="stylesheet" href="{% static 'css/registrtion_style.css' %}">
+		<title>{{ title }}</title>
+		<script src="{% static 'js/app.js' %}"></script>
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js"></script>
+		<script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+	</head>
+	<body>
+		{% block mainmenu %}
+		<style>
+			form {
+			display: flex;
+			justify-content: center;
+			}
+			.result-card{
+			width: 100%;
+			height: 100%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			flex-direction: column;
+			background-color: #f5f5f5;
+			border-radius: 10px;
+			padding: 20px;
+			margin: 0 auto;
+			}
+			.not-visible{
+			display: none;
+			}
+		</style>
+		<header>
+			<nav class="navbar navbar-expand-lg navbar-light bg-light row">
+				<!-- Container wrapper -->
+				<div class="container-fluid text-left col">
+					<!-- Toggle button -->
+					<button
+						class="navbar-toggler"
+						type="button"
+						data-bs-toggle="collapse"
+						data-bs-target="#navbarSupportedContent"
+						aria-controls="navbarSupportedContent"
+						aria-expanded="false"
+						aria-label="Toggle navigation"
+						>
+					<span class="navbar-toggler-icon"></span>
+					</button>
+					<!-- Collapsible wrapper -->
+					<div class="collapse navbar-collapse" id="navbarSupportedContent">
+						<!-- Navbar brand -->
+						<a class="navbar-brand mt-2 mt-lg-0" href="{% url 'index' %}">
+						<img
+							src="/media/photo_2019-05-14_19-53-05.jpg"
+							height="40"
+							alt="MDB Logo"
+							loading="lazy"
+							/>
+						</a>
+						<!-- Left links -->
+						<ul class="navbar-nav me-auto mb-2 mb-lg-0">
+							{% for p in menu %}
+							<li class="nav-item">
+								<a class="nav-link" href="{% url p.url_name %}">{{ p.title }}</a>
+							</li>
+							{%  endfor %}
+						</ul>
+						<!-- Search bar -->
+					</div>
+					<!-- Left links -->
+				</div>
+				<!-- Collapsible wrapper -->
+                {% if user.is_authenticated %}
+                <!-- Search form -->
+				<form class="navbar-nav w-25 mx-auto col dropdown" id="search-form">
+					{% csrf_token %}
+					<input class="form-control w-100"
+						type="text"
+						id="search-input"
+						placeholder="Search"
+						name ="q"
+						aria-label="Search"
+                        data-bs-toggle="dropdown">
+                    <div id="results-box" class="dropdown-menu w-100" aria-labelledby="search-input">
+                    </div>
+				</form>
+                <script src="{% static 'js/search.js' %}"></script>
+                <!-- Search form -->
+				<!-- Right elements -->
+				<div class="d-flex align-items-center col">
+					{#          <!-- Icon -->#}
+					{#          <a class="text-reset me-3" href="#">#}
+					{#            <i class="fas fa-shopping-cart"></i>#}
+					{#          </a>#}
+					{#          <!-- Notifications -->#}
 
-<!-- Collapsible wrapper -->
-        <div class="collapse navbar-collapse" id="navbarSupportedContent">
-          <!-- Navbar brand -->
-          <a class="navbar-brand mt-2 mt-lg-0" href="{% url 'index' %}">
-            <img
-              src="/media/photo_2019-05-14_19-53-05.jpg"
-              height="40"
-              alt="MDB Logo"
-              loading="lazy"
-            />
-          </a>
-          <!-- Left links -->
-          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-              {% for p in menu %}
-                <li class="nav-item">
-                  <a class="nav-link" href="{% url p.url_name %}">{{ p.title }}</a>
-                </li>
-              {%  endfor %}
-          </ul>
-          <!-- Search bar -->
-          <form class="form-inline my-2 my-lg-0 row g-2" action="">
-              <div class="col-sm-3">
-            <input class="form-control mr-sm-2" type="text" id="search-input" placeholder="Search" aria-label="Search">
-                </div>
-            <div class="col-sm-3">
-                  <button class="btn btn-outline-success my-2 my-sm-0 col" type="submit">Search</button>
-                </div>
-          </form>
-        <script>
-            const searchInput = document.getElementById('search-input');
+{#					<div class="dropdown">#}
+{#						#}
+						{#            <a#}
+						{#              class="text-reset me-3 dropdown-toggle hidden-arrow"#}
+						{#              href="#"#}
+						{#              id="navbarDropdownMenuLink"#}
+						{#              role="button"#}
+						{#              data-mdb-toggle="dropdown"#}
+						{#              aria-expanded="false"#}
+						{#            >#}
+						{#              <i class="fas fa-bell"></i>#}
+						{#              <span class="badge rounded-pill badge-notification bg-danger">1</span>#}
+						{#            </a>#}
+						{#            <ul#}
+						{#              class="dropdown-menu dropdown-menu-end"#}
+						{#              aria-labelledby="navbarDropdownMenuLink"#}
+						{#            >#}
 
-            searchInput.addEventListener('keyup', function(event) {
-              const searchQuery = searchInput.value;
+{#						<li>#}
+{#							                <a class="dropdown-item" href="#">Some news</a>##}
+{#						</li>#}
+{#						<li>#}
+							{#                <a class="dropdown-item" href="#">Another news</a>#}
 
-              const xhr = new XMLHttpRequest();
-              xhr.open('GET', '/search?q=' + searchQuery, true);
-              xhr.send();
-            });
-        </script>
-        </div>
-          <!-- Left links -->
-        </div>
-        <!-- Collapsible wrapper -->
-        {% if user.is_authenticated %}
+{#						</li>#}
+{#						#}
 
-        <!-- Right elements -->
-        <div class="d-flex align-items-center">
-          <!-- Icon -->
-          <a class="text-reset me-3" href="#">
-            <i class="fas fa-shopping-cart"></i>
-          </a>
+{#						<li>#}
+							{#                <a class="dropdown-item" href="#">Something else here</a>#}
+{#						</li>#}
+{#						#}
+						{#            </ul>#}
 
-          <!-- Notifications -->
-          <div class="dropdown">
-            <a
-              class="text-reset me-3 dropdown-toggle hidden-arrow"
-              href="#"
-              id="navbarDropdownMenuLink"
-              role="button"
-              data-mdb-toggle="dropdown"
-              aria-expanded="false"
-            >
-              <i class="fas fa-bell"></i>
-              <span class="badge rounded-pill badge-notification bg-danger">1</span>
-            </a>
-            <ul
-              class="dropdown-menu dropdown-menu-end"
-              aria-labelledby="navbarDropdownMenuLink"
-            >
-              <li>
-                <a class="dropdown-item" href="#">Some news</a>
-              </li>
-              <li>
-                <a class="dropdown-item" href="#">Another news</a>
-              </li>
-              <li>
-                <a class="dropdown-item" href="#">Something else here</a>
-              </li>
-            </ul>
-          </div>
-          <!-- Avatar -->
-          <div class="dropdown">
-            <a
-              class="dropdown-toggle d-flex align-items-center hidden-arrow"
-              href="#"
-              id="navbarDropdownMenuAvatar"
-              role="button"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-            >
-                {% if not user.avatar %}
-                {{ name }}
-                {% else %}
-              <img
-                src="{{ user.avatar.url }}"
-                class="rounded-circle"
-                height="25"
-                alt="Black and White Portrait of a Man"
-                loading="lazy"
-              />
-                {% endif %}
-            </a>
-            <ul
-              class="dropdown-menu dropdown-menu-right"
-              aria-labelledby="navbarDropdownMenuAvatar"
-            >
-              <li>
-                <a class="dropdown-item" href="{% url 'my_profile' %}">My profile</a>
-              </li>
-              <li>
-                <a class="dropdown-item" href="#">Settings</a>
-              </li>
-              <li>
-                <a class="dropdown-item" href="{% url 'logout_url' %}">Logout</a>
-              </li>
-            </ul>
-          </div>
-        </div>
-        <!-- Right elements -->
-      {% endif %}
-      </div>
-      <!-- Container wrapper -->
-    </nav>
-    </header>
-{% endblock mainmenu %}
-{%  block content %}
-{% endblock %}
-</body>
+{#					</div>#}
+{#					#}
+					<!-- Avatar -->
+					<div class="dropdown text-right row">
+                        <div class="col"></div>
+                        <div class="col"></div>
+						<a
+							class="dropdown-toggle col d-flex align-items-center hidden-arrow"
+							href="#"
+							id="navbarDropdownMenuAvatar"
+							role="button"
+							data-bs-toggle="dropdown"
+							aria-expanded="false"
+							>
+						{% if not user.avatar %}
+						{{ name }}
+						{% else %}
+						<img
+							src="{{ user.avatar.url }}"
+							class="rounded-circle"
+							height="25"
+							alt="Black and White Portrait of a Man"
+							loading="lazy"
+							/>
+						{% endif %}
+						</a>
+						<ul
+							class="dropdown-menu dropdown-menu-right col-3"
+							aria-labelledby="navbarDropdownMenuAvatar"
+							>
+							<li>
+								<a class="dropdown-item" href="{% url 'my_profile' %}">My profile</a>
+							</li>
+							<li>
+								<a class="dropdown-item" href="#">Settings</a>
+							</li>
+							<li>
+								<a class="dropdown-item" href="{% url 'logout_url' %}">Logout</a>
+							</li>
+						</ul>
+					</div>
+				</div>
+				<!-- Right elements -->
+				{% endif %}
+				<!-- Container wrapper -->
+			</nav>
+		</header>
+        <!-- Navbar -->
+
+		{% endblock mainmenu %}
+		{%  block content %}
+		{% endblock content %}
+	</body>
 </html>

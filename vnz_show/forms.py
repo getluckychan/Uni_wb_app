@@ -7,7 +7,6 @@ from vnz.models import *
 from secrets import compare_digest
 
 
-# FIXME: fix forms for sign in and sign up beside new users models
 class UserCreateForm(forms.ModelForm):
     """A form for creating new users. Includes all the required
     fields, plus a repeated password and job."""

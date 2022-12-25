@@ -27,7 +27,7 @@ SECRET_KEY = os.environ.setdefault("DJANGO_SETTINGS_MODULE", "djangoProject.sett
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = 'TRUE'
 
-ALLOWED_HOSTS = ['127.0.0.1', '192.168.1.107', '178.212.111.37']
+ALLOWED_HOSTS = ['127.0.0.1', '192.168.1.107', '178.212.111.37', 'localhost']
 
 
 # Application definition
