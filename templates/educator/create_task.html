@@ -1,11 +1,12 @@
 {%  extends 'base_generic.html' %}
 {% load crispy_forms_filters %}
 {%  block content %}
-        <form action="{% url 'create_test' %}" method="post">
+        {{ test.theme }}
+        {{ tasks.question }}
+        <form action="{% url 'create_task' test.id%}" method="post">
             {% csrf_token %}
             {{ form.errors }}
             {{ form|crispy }}
             <button class="btn btn-primary profile-button" type="submit">Submit</button>
-            <button class="btn btn-primary profile-button" type="submit" href="{% url 'show_tests' %}">Save and exit</button>
         </form>
 {% endblock %}

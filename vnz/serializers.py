@@ -51,10 +51,6 @@ class GroupsModelSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class ListOfStudentPerGroupModelSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ListOfStudentPerGroup
-        fields = '__all__'
 
 
 class ListOfUsersSerializer(serializers.ModelSerializer):
@@ -84,12 +80,6 @@ class AnswerSerializer(serializers.ModelSerializer):
 class StudentTestSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentTest
-        fields = '__all__'
-
-
-class MessageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Message
         fields = '__all__'
 
 

@@ -26,9 +26,11 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('vnz.urls')),
     path('', include('vnz_show.urls'), name='home'),
+    path('chat/', include('chat.urls')),
+
 ]
 
 handler404 = page_not_found
 if settings.DEBUG:
-        urlpatterns += static(settings.MEDIA_URL,
-                              document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.MEDIA_URL,
+                          document_root=settings.MEDIA_ROOT)

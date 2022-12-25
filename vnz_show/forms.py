@@ -1,61 +1,141 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.hashers import check_password
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from vnz.models import *
+from secrets import compare_digest
 
 
 # FIXME: fix forms for sign in and sign up beside new users models
-class RegistrationForm(forms.Form):
+class UserCreateForm(forms.ModelForm):
+    """A form for creating new users. Includes all the required
+    fields, plus a repeated password and job."""
+    password1 = forms.CharField(label='Password',
+                                widget=forms.PasswordInput(attrs={'class': 'form-control'}))
+    password2 = forms.CharField(label='Password confirmation',
+                                widget=forms.PasswordInput(attrs={'class': 'form-control'}))
     JOBS = (
         ("STUDENT", "Student"),
         ("EDUCATOR", "Educator")
     )
     job = forms.ChoiceField(choices=JOBS, widget=forms.Select(attrs={'class': 'form-control'}))
 
-    email = forms.EmailField(widget=forms.EmailInput(attrs={'class': 'form-control'}))
-    full_name = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'class': 'form-control'}))
-    date_of_birth = forms.DateField(widget=forms.DateInput(attrs={'type': 'date',
-                                                                  'class': 'form-control', }))
-    password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}))
-    confirm_password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}))
+    class Meta:
+        model = MyUser
+        fields = ('email', 'full_name', 'avatar', 'date_of_birth')
+        widgets = {
+            'date_of_birth': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'full_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'avatar': forms.FileInput(attrs={'class': 'form-control'}),
+        }
 
-    def clean(self):
-        cleaned_data = super(RegistrationForm, self).clean()
-        password = cleaned_data.get("password")
-        confirm_password = cleaned_data.get("confirm_password")
+    def clean_password2(self):
+        # Check that the two password entries match
+        password1 = self.cleaned_data.get("password1")
+        password2 = self.cleaned_data.get("password2")
+        if password1 and password2 and password1 != password2:
+            raise ValidationError("Passwords don't match")
+        return password2
 
-        if password != confirm_password:
-            raise forms.ValidationError(
-                "Passwords don`t match"
-            )
+    def save(self, commit=True):
+        # Save the provided password in hashed format
+        user = super().save(commit=False)
+        user.set_password(self.cleaned_data["password1"])
+        if commit:
+            # check if user is student or educator
+            if self.cleaned_data['job'] == 'STUDENT':
+                user.is_student = True
+            elif self.cleaned_data['job'] == 'EDUCATOR':
+                user.is_educator = True
+            user.save()
+        return user
 
 
-class StudentSetUpForm(forms.Form):
-    speciality = forms.ModelChoiceField(
-        queryset=Speciality.objects.all(),
-        required=True,
-        widget=forms.Select(attrs={'class': 'form-control'})
-    )
-    acception = forms.DateField(widget=forms.DateInput(attrs={'type': 'date',
-                                                              'class': 'form-control', }))
-    graduation = forms.DateField(widget=forms.DateInput(attrs={'type': 'date',
-                                                               'class': 'form-control', }))
+class SignUpAsStudentForm(forms.ModelForm):
+    # adding new user to student model
+    class Meta:
+        model = Student
+        fields = ('speciality', 'acception', 'graduation')
+        widgets = {
+            'speciality': forms.Select(attrs={'class': 'form-control'}),
+            'acception': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'graduation': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        }
 
 
-class EducatorSetUpForm(forms.Form):
-    rank = forms.ModelChoiceField(
-        queryset=Rank.objects.all(),
-        required=True,
-        widget=forms.Select(attrs={'class': 'form-control'})
-    )
-    department = forms.ModelChoiceField(
-        queryset=Department.objects.all(),
-        required=True,
-        widget=forms.Select(attrs={'class': 'form-control'})
-    )
-    acception = forms.DateField(widget=forms.DateInput(attrs={'type': 'date',
-                                                              'class': 'form-control', }))
+class SignUpAsEducatorForm(forms.ModelForm):
+    # adding new user to educator model
+    class Meta:
+        model = Educator
+        fields = ('department', 'rank', 'acception')
+        widgets = {
+            'department': forms.Select(attrs={'class': 'form-control'}),
+            'rank': forms.Select(attrs={'class': 'form-control'}),
+            'acception': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        }
+
+
+class EditMyUserForm(forms.ModelForm):
+    class Meta:
+        model = MyUser
+        fields = ('email', 'full_name', 'avatar', 'date_of_birth')
+        widgets = {
+            'date_of_birth': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'full_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'avatar': forms.FileInput(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self):
+        super().__init__()
+        self.fields['email'].disabled = True
+
+
+class EducatorUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Educator
+        fields = ('department', 'rank', 'acception')
+        widgets = {
+            'department': forms.Select(attrs={'class': 'form-control'}),
+            'rank': forms.Select(attrs={'class': 'form-control'}),
+            'acception': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        }
+
+    def __init__(self, user, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+
+class StudentUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Student
+        fields = ('speciality', 'acception', 'graduation')
+        widgets = {
+            'speciality': forms.Select(attrs={'class': 'form-control'}),
+            'acception': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'graduation': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        }
+
+    def __init__(self, user, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+
+class MyProfileForm(forms.ModelForm):
+    class Meta:
+        model = MyUser
+        fields = ('full_name', 'email', 'date_of_birth')
+        widgets = {
+            'full_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'date_of_birth': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        }
+
+    def __init__(self, user, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
 
 
 class LoginForm(forms.Form):
@@ -71,15 +151,16 @@ class UserSetUp(forms.Form):
     job = forms.ChoiceField(choices=JOBS, widget=forms.Select(attrs={'class': 'form-control'}))
 
 
-class CreateTestForm(forms.Form):
-    theme = forms.CharField(max_length=150)
-    subject = forms.ModelChoiceField(
-        queryset=Subjects.objects.all(),
-        required=True,
-        widget=forms.Select(attrs={'class': 'form-control'})
-    )
-    time = forms.DurationField(widget=forms.TimeInput(attrs={'class': 'form-control',
-                                                             'type': 'time'}))
+class CreateTestForm(forms.ModelForm):
+    class Meta:
+        model = Test
+        fields = ('theme', 'subject', 'time', 'date')
+        widgets = {
+            'theme': forms.TextInput(attrs={'class': 'form-control'}),
+            'subject': forms.Select(attrs={'class': 'form-control'}),
+            'time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        }
 
 
 class TestForm(forms.ModelForm):
@@ -97,12 +178,20 @@ class CreateTaskForm(forms.Form):
 class TaskForm(forms.ModelForm):
     class Meta:
         model = Task
-        fields = '__all__'
+        fields = ('question',)
+        widgets = {
+            'question': forms.Textarea(attrs={'class': 'form-control'}),
+        }
 
 
-class AnswerForm(forms.Form):
-    answer = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}), max_length=150)
-    correctness = forms.BooleanField(widget=forms.CheckboxInput(attrs={'class': 'form-control'}))
+class AnswerForm(forms.ModelForm):
+    class Meta:
+        model = Answer
+        fields = ('answer', 'correctness')
+        widgets = {
+            'answer': forms.TextInput(attrs={'class': 'form-control'}),
+            'correctness': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
 
 
 class CreateSpecialitiesForm(forms.ModelForm):
@@ -123,22 +212,19 @@ class CreateSubjectForm(forms.ModelForm):
         fields = '__all__'
 
 
-class CreateMarkForm(forms.Form):
-    student = forms.ModelChoiceField(
-        queryset=Student.objects.all(),
-        required=True,
-        widget=forms.Select(attrs={'class': 'form-control'})
-    )
-    subject = forms.ModelChoiceField(
-        queryset=Subjects.objects.all(),
-        required=True,
-        widget=forms.Select(attrs={'class': 'form-control'})
-    )
-    mark = forms.FloatField(widget=forms.NumberInput(attrs={'class': 'form-control'}))
+class CreateMarkForm(forms.ModelForm):
+    class Meta:
+        model = Marks
+        fields = ('student', 'subject', 'mark', 'date')
+        widgets = {
+            'student': forms.Select(attrs={'class': 'form-control'}),
+            'subject': forms.Select(attrs={'class': 'form-control'}),
+            'mark': forms.NumberInput(attrs={'class': 'form-control'}),
+            'date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        }
 
 
 class CreateGroupForm(forms.Form):
-
     courses = (
         ("1", "1"),
         ("2", "2"),
@@ -159,4 +245,5 @@ class CreateGroupForm(forms.Form):
         required=False,
         widget=forms.SelectMultiple(attrs={'class': 'form-control'})
     )
+
 

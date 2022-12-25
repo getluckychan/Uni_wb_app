@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 import os
 from pathlib import Path
+from django.core.asgi import get_asgi_application
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,12 +27,15 @@ SECRET_KEY = os.environ.setdefault("DJANGO_SETTINGS_MODULE", "djangoProject.sett
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = 'TRUE'
 
-ALLOWED_HOSTS = ['127.0.0.1']
+ALLOWED_HOSTS = ['127.0.0.1', '192.168.1.107', '178.212.111.37']
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
+    'channels',
+    'channels_postgres',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -42,9 +46,22 @@ INSTALLED_APPS = [
     'vnz',
     'vnz_show',
     'crispy_forms',
-    'channels',
+    'chat',
+    "django_extensions",
 ]
+
 ASGI_APPLICATION = 'djangoProject.asgi.application'
+WSGI_APPLICATION = 'djangoProject.wsgi.application'
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}
+
 
 AUTH_USER_MODEL = "vnz.MyUser"
 
@@ -77,7 +94,6 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'djangoProject.wsgi.application'
 
 
 # Database
@@ -91,8 +107,16 @@ DATABASES = {
         'PASSWORD': 'admin',
         'HOST': 'localhost',
         'PORT': '',
+    },
+    'channels_postgres': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'vnz',
+        'USER': 'admin',
+        'PASSWORD': 'admin',
+        'HOST': 'localhost',
+        'PORT': '',
     }
-}
+    }
 
 
 # Password validation
