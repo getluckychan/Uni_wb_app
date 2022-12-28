@@ -3,7 +3,7 @@ from django.utils.translation import gettext_lazy as _
 
 
 class MyUserManager(BaseUserManager):
-    def create_user(self, email, full_name, date_of_birth,  password=None):
+    def create_user(self, email, full_name, date_of_birth, avatar,  password=None):
         """
         Creates and saves a User with the given email, date of
         birth and password.
@@ -15,6 +15,7 @@ class MyUserManager(BaseUserManager):
             email=self.normalize_email(email),
             full_name=full_name,
             date_of_birth=date_of_birth,
+            avatar=avatar,
         )
 
         user.set_password(password)
@@ -31,6 +32,7 @@ class MyUserManager(BaseUserManager):
             password=password,
             full_name=full_name,
             date_of_birth=date_of_birth,
+            avatar=None,
         )
 
         user.is_admin = True
@@ -47,6 +49,7 @@ class MyUserManager(BaseUserManager):
             password=password,
             full_name=full_name,
             date_of_birth=date_of_birth,
+            avatar=None,
         )
 
         user.is_student = True
@@ -63,6 +66,7 @@ class MyUserManager(BaseUserManager):
             password=password,
             full_name=full_name,
             date_of_birth=date_of_birth,
+            avatar=None,
         )
 
         user.is_educator = True
@@ -79,6 +83,7 @@ class MyUserManager(BaseUserManager):
             password=password,
             full_name=full_name,
             date_of_birth=date_of_birth,
+            avatar=None,
         )
 
         user.is_unistuff = True
